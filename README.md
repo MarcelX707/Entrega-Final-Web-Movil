@@ -49,7 +49,7 @@ En la carpeta del backend (`Avance2/Web-Movil-Backend`), crea un archivo llamado
 ```env
 PORT=3001
 JWT_SECRET=tu_clave_secreta_super_segura
-DATABASE_URL=postgresql://neondb_owner:npg_TiS5pqhzwN4e@ep-purple-math-ap95ujnc-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+DATABASE_URL=postgresql://neondb_owner:npg_vbsTJX0V9Zyn@ep-purple-math-ap95ujnc-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 ```
 
 ---
