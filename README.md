@@ -56,7 +56,7 @@ DATABASE_URL=postgresql://neondb_owner:npg_TiS5pqhzwN4e@ep-purple-math-ap95ujnc-
 
 ## Ejecución de la App
 
-Para probar el proyecto completo en tu computadora local, debes levantar ambos servicios:
+Para probar el proyecto completo en la computadora local, se debe levantar ambos servicios:
 
 ### Servidor Backend
 Desde la carpeta `Avance2/Web-Movil-Backend`, arranca el servidor API REST:
