@@ -94,7 +94,7 @@ La API implementa los siguientes endpoints clave para el entregable:
 *   `DELETE /api/carpetas/:id`: Elimina una carpeta de la base de datos.
 *
 
-###Pruebas Postman
+### Pruebas Postman
 registro de nuevos usuarios:
 <img width="1577" height="905" alt="image" src="https://github.com/user-attachments/assets/23c9e736-2d0a-42ff-9d07-5cf63a2d141a" />
 
