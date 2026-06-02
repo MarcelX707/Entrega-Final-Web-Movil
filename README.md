@@ -400,6 +400,8 @@ No se permitió la modificación de datos del usuario.
 
 ---
 
+<img width="1576" height="885" alt="image" src="[modelo_relacional.png](https://drive.google.com/file/d/1CtqDWitX1LXbXVuI9H3xCc47jJNcXuJu/view?usp=drive_link)" />
+
 # Conclusión
 
 Las pruebas realizadas demuestran el correcto funcionamiento de la API REST, incluyendo autenticación mediante JWT, operaciones CRUD, validaciones de entrada, manejo de errores, protección frente a registros duplicados y control de recursos inexistentes. Los resultados obtenidos evidencian que la aplicación responde con códigos HTTP apropiados y mensajes JSON consistentes ante distintos escenarios de uso.
