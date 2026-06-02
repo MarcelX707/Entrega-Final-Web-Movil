@@ -39,12 +39,12 @@ app.get('/api/carpetas/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM carpetas WHERE id_carpeta = $1', [id]);
-    
+
     if (result.rows.length === 0) {
       // 404 Not Found
       return res.status(404).json({ error: 'Carpeta no encontrada' });
     }
-    
+
     res.status(200).json(result.rows[0]);
   } catch (error) {
     console.error(error.message);
@@ -56,7 +56,7 @@ app.get('/api/carpetas/:id', async (req, res) => {
 app.post('/api/carpetas', async (req, res) => {
   try {
     const { nombre_carpeta } = req.body;
-    
+
     // Validación básica
     if (!nombre_carpeta) {
       // 400 Bad Request
@@ -67,7 +67,7 @@ app.post('/api/carpetas', async (req, res) => {
       'INSERT INTO carpetas (nombre_carpeta) VALUES ($1) RETURNING *',
       [nombre_carpeta]
     );
-    
+
     // 201 Created
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -251,8 +251,22 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Middleware para verificar el token JWT (Error 403 si falta, 401 si es inválido/expirado)
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(403).json({ error: 'Acceso denegado: token no proporcionado' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'una_clave_secreta_muy_segura_para_los_tokens');
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+};
+
 // 3. PUT: Actualizar perfil del usuario
-app.put('/api/auth/profile/:id', async (req, res) => {
+app.put('/api/auth/profile/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, apellido, email } = req.body;
@@ -318,8 +332,8 @@ app.delete('/api/auth/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    res.status(200).json({ 
-      mensaje: 'Usuario eliminado exitosamente', 
+    res.status(200).json({
+      mensaje: 'Usuario eliminado exitosamente',
       usuario: {
         id: result.rows[0].id_usuario.toString(),
         nombre: result.rows[0].nombre,
