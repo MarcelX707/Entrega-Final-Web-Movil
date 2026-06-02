@@ -92,3 +92,31 @@ La API implementa los siguientes endpoints clave para el entregable:
 *   `POST /api/carpetas`: Crea una nueva carpeta municipal.
 *   `PUT /api/carpetas/:id`: Modifica el nombre de una carpeta existente.
 *   `DELETE /api/carpetas/:id`: Elimina una carpeta de la base de datos.
+*
+
+###Pruebas Postman
+registro de nuevos usuarios:
+<img width="1577" height="905" alt="image" src="https://github.com/user-attachments/assets/23c9e736-2d0a-42ff-9d07-5cf63a2d141a" />
+
+Inicio de sesion:
+auth login <img width="1544" height="862" alt="image" src="https://github.com/user-attachments/assets/27d602e1-edd6-48ab-8aca-6fbcd5d8518a" />
+
+Actualizacion de perfil:
+profile id <img width="1573" height="844" alt="image" src="https://github.com/user-attachments/assets/62479610-6166-49ea-a337-a45c583bb952" />
+
+Obtener lista completa de carpetas municipales:
+get carpetas <img width="1576" height="907" alt="image" src="https://github.com/user-attachments/assets/40069db9-a95e-4a44-a70c-fb1ce4c3f025" />
+
+Crear nueva carpeta municipal:
+post carpetas <img width="1581" height="939" alt="image" src="https://github.com/user-attachments/assets/a0820a26-50e4-4165-9cf2-4b428798cb56" />
+
+Modificar el nombre carpeta existente:
+put carpetas <img width="1590" height="908" alt="image" src="https://github.com/user-attachments/assets/12454f9c-ba3f-4bb5-b2fb-0f019186e370" />
+
+Eliminar una nueva carpeta de la db:
+delete <img width="1578" height="904" alt="image" src="https://github.com/user-attachments/assets/35038d23-389a-4efb-8262-a5f56b6753f0" />
+
+
+
+
+
