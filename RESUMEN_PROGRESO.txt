@@ -26,7 +26,10 @@ Se han implementado y verificado las siguientes funcionalidades principales:
 4. CONTENEDORIZACIÓN CON DOCKER
 Se ha implementado una arquitectura de contenedores para facilitar el despliegue y la consistencia del entorno:
 - Dockerfiles Multi-etapa: Se crearon configuraciones optimizadas tanto para el Backend (Node.js 20-alpine) como para el Frontend (Build con Node y servicio con Nginx).
-- Orquestación con Docker Compose: Se integró un archivo `docker-compose.yml` que permite levantar toda la plataforma (Frontend + Backend) con un solo comando, gestionando variables de entorno y mapeo de puertos.
+- Orquestación con Docker Compose: Se integró un archivo `docker-compose.yml` que permite levantar toda la plataforma (Frontend + Backend) con un solo comando.
+- Imágenes en Docker Hub: Las imágenes han sido subidas a repositorios públicos para facilitar el despliegue en la nube:
+  * Backend: `marcelx707/municipalidad_backend:latest`
+  * Frontend: `marcelx707/municipalidad_frontend:latest`
 - Servidor Web (Nginx): El Frontend ahora se sirve mediante Nginx en el contenedor, mejorando el rendimiento y la seguridad en producción.
 
 5. ESTADO ACTUAL

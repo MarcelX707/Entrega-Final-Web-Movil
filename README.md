@@ -72,6 +72,22 @@ npm start
 ```
 La aplicación web se abrirá en: **`http://localhost:3000`**
 
+## 🐋 Docker y Despliegue
+
+La aplicación está completamente contenedorizada y lista para ser desplegada.
+
+### Imágenes en Docker Hub
+Puedes encontrar las imágenes oficiales en Docker Hub:
+*   **Backend:** [marcelx707/municipalidad_backend](https://hub.docker.com/r/marcelx707/municipalidad_backend)
+*   **Frontend:** [marcelx707/municipalidad_frontend](https://hub.docker.com/r/marcelx707/municipalidad_frontend)
+
+### Despliegue con Docker Compose
+Si tienes Docker instalado, puedes levantar todo el sistema con:
+```bash
+docker compose up -d
+```
+Esto descargará las imágenes y configurará los contenedores automáticamente.
+
 ---
 
 ## Funcionalidades Principales (EF 1)
