@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
 const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
 
 // Inicializar la aplicación
 const app = express();
@@ -365,31 +366,36 @@ app.put('/api/fases/:id', async (req, res) => {
 // ==========================================
 
 // 0. POST: Google Login (Integración EF 5)
-const axios = require('axios');
-
-// ... (dentro de app.post('/api/auth/google', ...))
-
 app.post('/api/auth/google', async (req, res) => {
   try {
     const { token } = req.body;
-    console.log('Token recibido de Google:', token ? 'Token presente' : 'Token AUSENTE');
+    console.log('--- Intento de Login con Google ---');
     
-    // Obtenemos la info del usuario usando el access_token que viene del frontend
-    // Usamos una URL de validación más robusta
-    const googleRes = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    const payload = googleRes.data;
-    console.log('Payload de Google validado para:', payload.email);
+    if (!token) {
+      return res.status(400).json({ error: 'Token de Google no proporcionado' });
+    }
+
+    // 1. Validar token con Google
+    let payload;
+    try {
+      const googleRes = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      payload = googleRes.data;
+      console.log('Google validó correctamente a:', payload.email);
+    } catch (googleErr) {
+      console.error('Error al validar token con Google:', googleErr.response?.data || googleErr.message);
+      return res.status(401).json({ error: 'Token de Google inválido o expirado' });
+    }
+
     const { email, given_name, family_name, sub } = payload;
 
-    // 2. Buscar si el usuario ya existe en nuestra base de datos
+    // 2. Buscar o crear usuario en la BD
     let userResult = await pool.query('SELECT * FROM usuarios WHERE correo = $1', [email]);
     let user;
 
     if (userResult.rows.length === 0) {
-      // 3. Si no existe, lo creamos (Registro automático)
+      console.log('Registrando nuevo usuario desde Google:', email);
       const rutFicticio = `G-${sub.substring(0, 8)}`; 
       const newUserResult = await pool.query(
         `INSERT INTO usuarios (id_rol, nombre, apellido, correo, contrasena_hash, rut, region, comuna) 
@@ -399,13 +405,14 @@ app.post('/api/auth/google', async (req, res) => {
       user = newUserResult.rows[0];
     } else {
       user = userResult.rows[0];
+      console.log('Usuario existente encontrado:', email);
     }
 
-    // 4. Determinar rol
+    // 3. Determinar rol
     const roleResult = await pool.query('SELECT nombre_rol FROM roles WHERE id_rol = $1', [user.id_rol]);
     const roleName = roleResult.rows.length > 0 && roleResult.rows[0].nombre_rol === 'administrador' ? 'admin' : 'user';
 
-    // 5. Generar nuestro propio token JWT
+    // 4. Generar JWT propio
     const jwtToken = jwt.sign(
       { id: user.id_usuario, email: user.correo, role: roleName },
       process.env.JWT_SECRET || 'una_clave_secreta_muy_segura_para_los_tokens',
@@ -420,14 +427,14 @@ app.post('/api/auth/google', async (req, res) => {
         email: user.correo,
         rut: user.rut,
         role: roleName,
-        region: user.region,
-        comuna: user.comuna
+        region: user.region || 'Región Metropolitana',
+        comuna: user.comuna || 'Santo Domingo'
       },
       token: jwtToken
     });
   } catch (error) {
-    console.error('Error Google Login Backend:', error.message);
-    res.status(500).json({ error: 'Error en la autenticación con Google' });
+    console.error('Error crítico en el proceso de Login con Google:', error);
+    res.status(500).json({ error: 'Error interno del servidor durante la autenticación' });
   }
 });
 
