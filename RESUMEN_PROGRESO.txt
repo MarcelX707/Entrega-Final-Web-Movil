@@ -23,5 +23,11 @@ Se han implementado y verificado las siguientes funcionalidades principales:
 - Pruebas: Validación exhaustiva de todos los endpoints de la API mediante Postman (incluyendo manejo de errores).
 - Google Login: Integración del flujo de autenticación de Google tanto en Frontend como en Backend.
 
-4. ESTADO ACTUAL
-El proyecto se encuentra en una etapa de madurez alta, con todos los requisitos funcionales de la Entrega Final (EF 1 y 2) completados y documentados. El repositorio incluye un README detallado y evidencias de pruebas exitosas.
+4. CONTENEDORIZACIÓN CON DOCKER
+Se ha implementado una arquitectura de contenedores para facilitar el despliegue y la consistencia del entorno:
+- Dockerfiles Multi-etapa: Se crearon configuraciones optimizadas tanto para el Backend (Node.js 20-alpine) como para el Frontend (Build con Node y servicio con Nginx).
+- Orquestación con Docker Compose: Se integró un archivo `docker-compose.yml` que permite levantar toda la plataforma (Frontend + Backend) con un solo comando, gestionando variables de entorno y mapeo de puertos.
+- Servidor Web (Nginx): El Frontend ahora se sirve mediante Nginx en el contenedor, mejorando el rendimiento y la seguridad en producción.
+
+5. ESTADO ACTUAL
+El proyecto se encuentra en una etapa de madurez alta, con todos los requisitos funcionales de la Entrega Final completados, integración de servicios externos y ahora completamente contenedorizado. El repositorio incluye un README detallado y evidencias de pruebas exitosas.
