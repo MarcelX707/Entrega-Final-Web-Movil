@@ -103,69 +103,89 @@ const DocumentsPage: React.FC = () => {
 
       <IonContent className="ion-padding">
         
-        <IonLoading isOpen={cargando} message="Cargando información..." />
-
-        <IonSearchbar 
-          value={query} 
-          onIonInput={(e: any) => setQuery(e.target.value)} 
-          placeholder="Buscar documento..." 
-        />
-
-        {/* Sección de Filtros por Carpeta */}
-        <IonGrid>
-          <IonRow>
-            <IonCol size="auto">
-              <IonButton 
-                fill={carpetaActiva === 'Todos' ? 'solid' : 'outline'} 
-                onClick={() => setCarpetaActiva('Todos')}
-                size="small"
-              >
-                Todos
-              </IonButton>
-            </IonCol>
-            
-            {carpetas.map(carpeta => (
-              <IonCol key={carpeta.id_carpeta} size="auto">
-                <IonButton 
-                  fill={carpetaActiva === carpeta.id_carpeta ? 'solid' : 'outline'} 
-                  onClick={() => setCarpetaActiva(carpeta.id_carpeta)}
-                  size="small"
-                >
-                  {carpeta.nombre_carpeta}
-                </IonButton>
-              </IonCol>
-            ))}
-          </IonRow>
-        </IonGrid>
-
-        {/* Lista de Documentos */}
-        <IonList>
-          {documentosFiltrados.length > 0 ? (
-            documentosFiltrados.map((doc) => (
-              <IonItem key={doc.id_documento}>
-                <IonIcon icon={documentOutline} slot="start" />
+        {/* NUEVO: Skeleton Screen en lugar de IonLoading para mejor UX */}
+        {cargando && (
+          <IonList>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <IonItem key={i}>
+                <IonIcon slot="start" icon={documentOutline} style={{ opacity: 0.3 }} />
                 <IonLabel>
-                  <h2>{doc.nombre_archivo}</h2>
-                  <p>{new Date(doc.fecha_subida).toLocaleDateString()} - ID: {doc.id_documento}</p>
+                  <h2><IonSkeletonText animated style={{ width: '60%' }} /></h2>
+                  <p><IonSkeletonText animated style={{ width: '40%' }} /></p>
                 </IonLabel>
-                <IonButtons slot="end">
-                  <IonButton fill="clear" onClick={() => window.open(doc.ruta_almacenamiento, '_blank')}>
-                    <IonIcon slot="icon-only" icon={downloadOutline} />
-                  </IonButton>
-                  {isAdmin && (
-                    <IonButton fill="clear" color="danger" onClick={() => handleDelete(doc.id_documento)}>
-                      <IonIcon slot="icon-only" icon={trashOutline} />
-                    </IonButton>
-                  )}
-                </IonButtons>
               </IonItem>
-            ))
-          ) : (
-            <IonItem lines="none">
-              <IonLabel className="ion-text-center">No se encontraron documentos</IonLabel>
-            </IonItem>
-          )}
-        </IonList>
+            ))}
+          </IonList>
+        )}
+
+        {!cargando && (
+          <>
+            <IonSearchbar 
+              value={query} 
+              onIonInput={(e: any) => setQuery(e.target.value)} 
+              placeholder="Buscar documento..." 
+            />
+
+            {/* Sección de Filtros por Carpeta */}
+            <IonGrid>
+              <IonRow>
+                <IonCol size="auto">
+                  <IonButton 
+                    fill={carpetaActiva === 'Todos' ? 'solid' : 'outline'} 
+                    onClick={() => setCarpetaActiva('Todos')}
+                    size="small"
+                  >
+                    Todos
+                  </IonButton>
+                </IonCol>
+                
+                {carpetas.map(carpeta => (
+                  <IonCol key={carpeta.id_carpeta} size="auto">
+                    <IonButton 
+                      fill={carpetaActiva === carpeta.id_carpeta ? 'solid' : 'outline'} 
+                      onClick={() => setCarpetaActiva(carpeta.id_carpeta)}
+                      size="small"
+                    >
+                      {carpeta.nombre_carpeta}
+                    </IonButton>
+                  </IonCol>
+                ))}
+              </IonRow>
+            </IonGrid>
+
+            {/* Lista de Documentos */}
+            <IonList>
+              {documentosFiltrados.length > 0 ? (
+                documentosFiltrados.map((doc) => (
+                  <IonItem key={doc.id_documento} className="animate__animated animate__fadeIn">
+                    <IonIcon icon={documentOutline} slot="start" />
+                    <IonLabel>
+                      <h2>{doc.nombre_archivo}</h2>
+                      <p>{new Date(doc.fecha_subida).toLocaleDateString()} - ID: {doc.id_documento}</p>
+                    </IonLabel>
+                    <IonButtons slot="end">
+                      <IonButton fill="clear" onClick={() => window.open(doc.ruta_almacenamiento, '_blank')}>
+                        <IonIcon slot="icon-only" icon={downloadOutline} />
+                      </IonButton>
+                      {isAdmin && (
+                        <IonButton fill="clear" color="danger" onClick={() => handleDelete(doc.id_documento)}>
+                          <IonIcon slot="icon-only" icon={trashOutline} />
+                        </IonButton>
+                      )}
+                    </IonButtons>
+                  </IonItem>
+                ))
+              ) : (
+                <div className="ion-text-center ion-padding" style={{ marginTop: '20px' }}>
+                  <IonIcon icon={folderOpenOutline} style={{ fontSize: '64px', color: '#ccc' }} />
+                  <p style={{ color: '#999' }}>No se encontraron documentos</p>
+                </div>
+              )}
+            </IonList>
+          </>
+        )}
+
+        {/* Botón flotante solo para Administradores */}
 
         {/* Botón flotante solo para Administradores */}
         {isAdmin && (
