@@ -140,7 +140,7 @@ app.get('/api/documentos', async (req, res) => {
       query += ' WHERE id_carpeta = $1';
       params.push(id_carpeta);
     }
-    
+
     query += ' ORDER BY fecha_subida DESC';
     const result = await pool.query(query, params);
     res.status(200).json(result.rows);
@@ -370,7 +370,7 @@ app.post('/api/auth/google', async (req, res) => {
   try {
     const { token } = req.body;
     console.log('--- Intento de Login con Google ---');
-    
+
     if (!token) {
       return res.status(400).json({ error: 'Token de Google no proporcionado' });
     }
@@ -396,7 +396,7 @@ app.post('/api/auth/google', async (req, res) => {
 
     if (userResult.rows.length === 0) {
       console.log('Registrando nuevo usuario desde Google:', email);
-      const rutFicticio = `G-${sub.substring(0, 8)}`; 
+      const rutFicticio = `G-${sub.substring(0, 8)}`;
       const newUserResult = await pool.query(
         `INSERT INTO usuarios (id_rol, nombre, apellido, correo, contrasena_hash, rut, region, comuna) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
