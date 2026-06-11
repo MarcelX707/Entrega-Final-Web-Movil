@@ -5,7 +5,7 @@ import {
   IonList, IonItem, IonLabel, IonIcon, IonBadge, IonButton,
   IonButtons, IonSearchbar, IonFab, IonFabButton,
   IonGrid, IonRow, IonCol, IonBackButton,
-  IonLoading // <-- NUEVO: Para mostrar un símbolo de carga
+  IonLoading, IonSkeletonText
 } from '@ionic/react';
 import { documentOutline, downloadOutline, addOutline, folderOpenOutline, logOutOutline, trashOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';

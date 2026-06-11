@@ -1,0 +1,27 @@
+RESUMEN DE PROGRESO - PLATAFORMA MUNICIPAL
+Fecha: 11 de junio de 2026
+
+1. INICIO DEL PROYECTO
+El proyecto comenzó con la definición de una arquitectura desacoplada para una Plataforma Municipal, utilizando Node.js/Express para el Backend y React/Ionic para el Frontend. El objetivo era centralizar trámites, documentos y notificaciones para los ciudadanos.
+
+2. PUNTOS COMPLETADOS (EF 1 y EF 2)
+Se han implementado y verificado las siguientes funcionalidades principales:
+- Autenticación y Autorización: Sistema de login/registro con roles (Admin/Usuario) y tokens JWT.
+- Gestión de Perfil: Los usuarios pueden actualizar su información personal.
+- Búsqueda y Filtrado: Buscador de trámites en tiempo real por estado y tipo.
+- Repositorio Documental: Sistema de carpetas con CRUD completo (Crear, Ver, Editar, Eliminar).
+- Hoja de Ruta Dinámica: Seguimiento visual de las fases de un trámite.
+- Sistema de Notificaciones: Alertas para el usuario con gestión de lectura.
+- Panel Administrativo: Control total sobre usuarios y trámites.
+- Integración con Google Login: Autenticación social implementada y verificada.
+- Skeleton Screens: Mejora de la experiencia de usuario (UX) mediante estados de carga visuales.
+
+3. DIFERENCIAS Y CAMBIOS CLAVE
+- Base de Datos: Se migró el almacenamiento local a una base de datos PostgreSQL alojada en la nube (Neon).
+- Frontend: Evolución de un prototipo básico a una aplicación móvil/web funcional usando Ionic Framework.
+- Seguridad: Implementación de middlewares para la protección de rutas mediante JWT.
+- Pruebas: Validación exhaustiva de todos los endpoints de la API mediante Postman (incluyendo manejo de errores).
+- Google Login: Integración del flujo de autenticación de Google tanto en Frontend como en Backend.
+
+4. ESTADO ACTUAL
+El proyecto se encuentra en una etapa de madurez alta, con todos los requisitos funcionales de la Entrega Final (EF 1 y 2) completados y documentados. El repositorio incluye un README detallado y evidencias de pruebas exitosas.
