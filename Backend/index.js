@@ -365,17 +365,17 @@ app.put('/api/fases/:id', async (req, res) => {
 // ==========================================
 
 // 0. POST: Google Login (Integración EF 5)
+const axios = require('axios');
+
+// ... (dentro de app.post('/api/auth/google', ...))
+
 app.post('/api/auth/google', async (req, res) => {
   try {
     const { token } = req.body;
     
-    // 1. Verificar el token con Google
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: '302628722954-stoilnvt45o0dj6l3beje83phftob2m8.apps.googleusercontent.com',
-    });
-    
-    const payload = ticket.getPayload();
+    // Obtenemos la info del usuario usando el access_token que viene del frontend
+    const googleRes = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${token}`);
+    const payload = googleRes.data;
     const { email, given_name, family_name, sub } = payload;
 
     // 2. Buscar si el usuario ya existe en nuestra base de datos

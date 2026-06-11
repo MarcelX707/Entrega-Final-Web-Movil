@@ -4,10 +4,10 @@ import {
   IonPage, IonContent, IonButton, IonIcon,
   IonText, IonLoading, IonFooter, IonToolbar,
 } from '@ionic/react';
-import { keyOutline, mailOutline, lockClosedOutline } from 'ionicons/icons';
+import { logoGoogle, keyOutline, mailOutline, lockClosedOutline } from 'ionicons/icons';
 import { useHistory, Link } from 'react-router-dom';
 import AuthService from '../../services/auth.service';
-import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 import api from '../../services/api';
 
 const LoginPage: React.FC = () => {
@@ -33,24 +33,28 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const onSuccessGoogle = async (credentialResponse: any) => {
-    setLoading(true);
-    try {
-      const { credential } = credentialResponse;
-      // Enviamos el token de Google a nuestro backend
-      const res = await api.post('/auth/google', { token: credential });
-      
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('user', JSON.stringify(res.data.user));
-      
-      setLoading(false);
-      history.push('/dashboard');
-    } catch (err: any) {
-      console.error('Error Google Login:', err);
-      setLoading(false);
-      setError('Error al autenticar con Google. Inténtalo de nuevo.');
-    }
-  };
+  // Configuración del login personalizado con tu botón antiguo
+  const loginGoogle = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        // En este flujo (Implicit Flow), recibimos un access_token. 
+        // El backend debe usar este token para obtener la info del usuario.
+        const res = await api.post('/auth/google', { token: tokenResponse.access_token });
+        
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('user', JSON.stringify(res.data.user));
+        
+        setLoading(false);
+        history.push('/dashboard');
+      } catch (err: any) {
+        console.error('Error Google Login:', err);
+        setLoading(false);
+        setError('Error al autenticar con Google. Inténtalo de nuevo.');
+      }
+    },
+    onError: () => setError('Fallo en el inicio de sesión con Google')
+  });
 
   const handleClaveUnica = () => {
     localStorage.setItem('user', JSON.stringify({ id: '3', nombre: 'Ciudadano', apellido: 'Demo', email: 'ciudadano@demo.cl', role: 'user' }));
@@ -104,16 +108,11 @@ const LoginPage: React.FC = () => {
           <div className="auth-card">
             <h3>Autentificación</h3>
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
-              <GoogleLogin
-                onSuccess={onSuccessGoogle}
-                onError={() => setError('Fallo en el inicio de sesión con Google')}
-                useOneTap
-                theme="outline"
-                size="large"
-                width="100%"
-              />
-            </div>
+            {/* Restauramos tu botón original pero vinculado a Google */}
+            <IonButton expand="block" fill="outline" className="social-btn google-btn" onClick={() => loginGoogle()}>
+              <IonIcon slot="start" icon={logoGoogle} />
+              Gmail
+            </IonButton>
 
             <IonButton expand="block" fill="outline" className="social-btn claveunica-btn" onClick={handleClaveUnica}>
               <IonIcon slot="start" icon={keyOutline} />
