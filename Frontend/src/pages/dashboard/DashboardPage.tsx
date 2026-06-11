@@ -53,7 +53,7 @@ const DashboardPage: React.FC = () => {
         <IonToolbar>
           <IonTitle>
             {nombreUsuario ? `Hola, ${nombreUsuario}` : 'Bienvenido'}
-            {role === 'admin' && <IonBadge color="dark" style={{ marginLeft: '10px' }}>Admin</IonBadge>}
+            {role === 'admin' && <IonBadge color="danger" style={{ marginLeft: '10px' }}>Admin</IonBadge>}
           </IonTitle>
           <IonButtons slot="end">
             <IonButton fill="clear" color="danger" onClick={handleLogout}>

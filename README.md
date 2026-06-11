@@ -1,13 +1,13 @@
-# Plataforma Municipal - Entregable 2
+# Plataforma Municipal - Entrega Final
 
-Este repositorio contiene el desarrollo del **Entregable 2**, el cual está dividido en dos avances principales que integran el Frontend y el Backend de la aplicación.
+Este repositorio contiene el desarrollo de la **Entrega Final**, el cual integra el Frontend y el Backend de la aplicación en una arquitectura desacoplada.
 
 ---
 
 ## 📁 Estructura del Proyecto
 
-*   **`Avance1/Web-Movil`**: Aplicación Frontend desarrollada con **React** y **TypeScript**. Incluye vistas de inicio de sesión, registro, perfiles, buscador y paneles de control protegidos por rutas privadas.
-*   **`Avance2/Web-Movil-Backend`**: API REST del Backend construida con **Node.js** y **Express**. Gestiona la autenticación mediante tokens JWT y se conecta con una base de datos **PostgreSQL** alojada en la nube (**Neon**).
+*   **`Frontend`**: Aplicación desarrollada con **React**, **Ionic** y **TypeScript**. Incluye vistas de inicio de sesión, registro, gestión de perfil, buscador de trámites, hoja de ruta dinámica, repositorio documental y panel administrativo.
+*   **`Backend`**: API REST construida con **Node.js** y **Express**. Gestiona la autenticación mediante tokens JWT y se conecta con una base de datos **PostgreSQL** alojada en la nube (**Neon**).
 
 ---
 
@@ -25,74 +25,67 @@ Sigue estos pasos detallados para instalar y poner en marcha el proyecto localme
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone https://github.com/MarcelX707/Web-Movil-Entregable2-.git
-cd Web-Movil-Entregable2-
+git clone https://github.com/MarcelX707/Entrega-Final-Web-Movil.git
+cd Entrega-Final-Web-Movil
 ```
 
-### 2. Instalar Dependencias del Frontend (Avance 1)
+### 2. Instalar Dependencias del Frontend
 Navega a la carpeta del frontend e instala las librerías necesarias:
 ```bash
-cd Avance1/Web-Movil
+cd Frontend
 npm install
 ```
 
-### 3. Instalar Dependencias del Backend (Avance 2)
+### 3. Instalar Dependencias del Backend
 Regresa a la raíz, navega al backend e instala sus dependencias:
 ```bash
-cd ../../Avance2/Web-Movil-Backend
+cd ../Backend
 npm install
 ```
 
-### 4. Configurar Variables de Entorno (`.env`)
-En la carpeta del backend (`Avance2/Web-Movil-Backend`), crea un archivo llamado `.env` e introduce las siguientes configuraciones de conexión a la base de datos en la nube (Neon):
+### 4. Configurar Variables de Envase (`.env`)
+En la carpeta `Backend`, asegúrate de tener un archivo `.env` con las credenciales de la base de datos y el secreto para JWT:
 
 ```env
 PORT=3001
-JWT_SECRET=tu_clave_secreta_super_segura
-DATABASE_URL=postgresql://neondb_owner:npg_vbsTJX0V9Zyn@ep-purple-math-ap95ujnc-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+JWT_SECRET=tu_clave_secreta
+DATABASE_URL=postgresql://neondb_owner:npg_vbsTJX0V9Zyn@ep-purple-math-ap95ujnc-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require
 ```
 
 ---
 
 ## Ejecución de la App
 
-Para probar el proyecto completo en la computadora local, se debe levantar ambos servicios:
+Para probar el proyecto completo, se deben levantar ambos servicios:
 
 ### Servidor Backend
-Desde la carpeta `Avance2/Web-Movil-Backend`, arranca el servidor API REST:
+Desde la carpeta `Backend`:
 ```bash
 node index.js
 ```
-El servidor backend se ejecutará en: **`http://localhost:3001`**
+El servidor se ejecutará en: **`http://localhost:3001`**
 
 ### Servidor Frontend (Cliente)
-Desde la carpeta `Avance1/Web-Movil`, inicia la aplicación web:
+Desde la carpeta `Frontend`:
 ```bash
 npm start
 ```
-*Si estás utilizando la configuración por defecto de Vite, puedes utilizar:*
-```bash
-npm run dev
-```
-La aplicación web se abrirá automáticamente en tu navegador en: **`http://localhost:3000`** (o `http://localhost:5173` si es con Vite).
+La aplicación web se abrirá en: **`http://localhost:3000`**
 
 ---
 
-## Endpoints de la API Backend
+## Funcionalidades Principales (EF 1)
 
-La API implementa los siguientes endpoints clave para el entregable:
+La plataforma implementa los siguientes módulos funcionales:
 
-### Autenticación y Perfil
-*   `POST /api/auth/register`: Registro de nuevos usuarios (encriptado con `bcrypt`).
-*   `POST /api/auth/login`: Inicio de sesión que genera un token de seguridad JWT.
-*   `PUT /api/auth/profile/:id`: Actualización de perfil del usuario.
+1. **Autenticación y Autorización**: Registro y login con roles diferenciados (User/Admin).
+2. **Gestión de Perfil**: Edición de datos personales del usuario.
+3. **Búsqueda y Filtrado**: Localización de trámites por estado y tipo en tiempo real.
+4. **Repositorio Documental**: CRUD completo de documentos y visualización por carpetas.
+5. **Hoja de Ruta Dinámica**: Seguimiento de fases de trámites con gestión administrativa.
+6. **Sistema de Notificaciones**: Alertas de sistema para el usuario (marcar como leída/eliminar).
+7. **Panel Administrativo**: Gestión de usuarios y control total del sistema.
 
-### Carpetas y Documentos
-*   `GET /api/carpetas`: Obtiene la lista completa de carpetas municipales.
-*   `POST /api/carpetas`: Crea una nueva carpeta municipal.
-*   `PUT /api/carpetas/:id`: Modifica el nombre de una carpeta existente.
-*   `DELETE /api/carpetas/:id`: Elimina una carpeta de la base de datos.
-*
 
 # Pruebas Funcionales de la API REST 
 
