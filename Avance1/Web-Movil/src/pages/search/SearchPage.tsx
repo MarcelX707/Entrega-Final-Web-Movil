@@ -1,32 +1,52 @@
 // src/pages/search/SearchPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonSearchbar, IonList, IonItem, IonLabel, IonChip,
   IonButtons, IonButton, IonIcon, IonSelect, IonSelectOption,
-  IonSkeletonText, IonText, IonBackButton,
+  IonText, IonBackButton, IonLoading
 } from '@ionic/react';
 import { logOutOutline, filterOutline, closeCircleOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
+import api from '../../services/api';
 
 interface Tramite {
-  id: string; nombre: string; estado: string; fecha: string; tipo: string;
+  id_tramite: number;
+  id_usuario: number;
+  nombre_estado: string;
+  nombre_tipo: string;
+  fecha_actualizacion: string;
 }
 
 const ESTADOS = ['Todos', 'Pendiente', 'En Proceso', 'Aprobado', 'Rechazado'];
 const TIPOS = ['Todos', 'Patente', 'Permiso', 'Certificado', 'Licencia'];
-
-const TRAMITES_DEMO: Tramite[] = [
-  { id: '1', nombre: 'Patente Comercial 2024', estado: 'Aprobado', fecha: '2024-03-15', tipo: 'Patente' },
-  { id: '2', nombre: 'Permiso de Obras', estado: 'Pendiente', fecha: '2024-04-01', tipo: 'Permiso' },
-  { id: '3', nombre: 'Certificado de Residencia', estado: 'En Proceso', fecha: '2024-04-10', tipo: 'Certificado' },
-];
 
 const SearchPage: React.FC = () => {
   const history = useHistory();
   const [query, setQuery] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('Todos');
   const [tipoFiltro, setTipoFiltro] = useState('Todos');
+  const [tramites, setTramites] = useState<Tramite[]>([]);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    const fetchTramites = async () => {
+      try {
+        const res = await api.get('/tramites', {
+          params: {
+            estado: estadoFiltro,
+            tipo: tipoFiltro
+          }
+        });
+        setTramites(res.data);
+      } catch (error) {
+        console.error('Error al cargar trámites:', error);
+      } finally {
+        setCargando(false);
+      }
+    };
+    fetchTramites();
+  }, [estadoFiltro, tipoFiltro]);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -34,11 +54,11 @@ const SearchPage: React.FC = () => {
     window.location.href = '/login';
   };
 
-  const filtrados = TRAMITES_DEMO.filter((t) => {
-    const matchQuery = t.nombre.toLowerCase().includes(query.toLowerCase());
-    const matchEstado = estadoFiltro === 'Todos' || t.estado === estadoFiltro;
-    const matchTipo = tipoFiltro === 'Todos' || t.tipo === tipoFiltro;
-    return matchQuery && matchEstado && matchTipo;
+  const filtrados = tramites.filter((t) => {
+    // El nombre del trámite no viene directamente en la tabla tramites según el inspect, 
+    // pero podemos usar el tipo y ID como identificador
+    const nombreDisplay = `${t.nombre_tipo} #${t.id_tramite}`;
+    return nombreDisplay.toLowerCase().includes(query.toLowerCase());
   });
 
   const getEstadoColor = (estado: string) => {
@@ -66,32 +86,33 @@ const SearchPage: React.FC = () => {
       </IonHeader>
 
       <IonContent>
+        <IonLoading isOpen={cargando} message="Buscando trámites..." />
         <IonSearchbar value={query} onIonChange={(e) => setQuery(e.detail.value!)} placeholder="Buscar trámite..." showClearButton="focus" />
 
-        <div className="filter-row">
-          <IonIcon icon={filterOutline} />
-          <IonSelect value={estadoFiltro} onIonChange={(e) => setEstadoFiltro(e.detail.value)} placeholder="Estado">
+        <div className="filter-row" style={{ display: 'flex', padding: '0 10px' }}>
+          <IonIcon icon={filterOutline} style={{ fontSize: '24px', alignSelf: 'center' }} />
+          <IonSelect value={estadoFiltro} onIonChange={(e) => setEstadoFiltro(e.detail.value)} placeholder="Estado" interface="popover">
             {ESTADOS.map((e) => <IonSelectOption key={e} value={e}>{e}</IonSelectOption>)}
           </IonSelect>
-          <IonSelect value={tipoFiltro} onIonChange={(e) => setTipoFiltro(e.detail.value)} placeholder="Tipo">
+          <IonSelect value={tipoFiltro} onIonChange={(e) => setTipoFiltro(e.detail.value)} placeholder="Tipo" interface="popover">
             {TIPOS.map((t) => <IonSelectOption key={t} value={t}>{t}</IonSelectOption>)}
           </IonSelect>
         </div>
 
-        {filtrados.length === 0 ? (
-          <div className="empty-state">
+        {filtrados.length === 0 && !cargando ? (
+          <div className="empty-state" style={{ textAlign: 'center', marginTop: '50px' }}>
             <IonIcon icon={closeCircleOutline} size="large" color="medium" />
             <IonText color="medium"><p>No se encontraron resultados.</p></IonText>
           </div>
         ) : (
           <IonList>
             {filtrados.map((t) => (
-              <IonItem key={t.id} button detail>
+              <IonItem key={t.id_tramite} button onClick={() => history.push(`/roadmap/${t.id_tramite}`)}>
                 <IonLabel>
-                  <h2>{t.nombre}</h2>
-                  <p>{t.tipo} · {t.fecha}</p>
+                  <h2>{t.nombre_tipo} #{t.id_tramite}</h2>
+                  <p>Actualizado: {new Date(t.fecha_actualizacion).toLocaleDateString()}</p>
                 </IonLabel>
-                <IonChip color={getEstadoColor(t.estado)} slot="end">{t.estado}</IonChip>
+                <IonChip color={getEstadoColor(t.nombre_estado)} slot="end">{t.nombre_estado}</IonChip>
               </IonItem>
             ))}
           </IonList>

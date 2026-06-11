@@ -11,6 +11,8 @@ import SearchPage from '../pages/search/SearchPage';
 import ReportsPage from '../pages/reports/ReportsPage';
 import RoadmapPage from '../pages/roadmap/RoadmapPage';
 import DocumentsPage from '../pages/documents/DocumentsPage';
+import NewDocumentPage from '../pages/documents/NewDocumentPage';
+import NotificationsPage from '../pages/dashboard/NotificationsPage';
 import AdminDashboardPage from '../pages/dashboard/AdminDashboardPage';
 import PrivateRoute from './PrivateRoute';
 import PublicRoute from './PublicRoute';
@@ -19,7 +21,7 @@ import PublicRoute from './PublicRoute';
  * AppRoutes — rutas de la aplicación.
  *
  * Públicas:   /login, /register
- * Protegidas: /dashboard, /profile, /search, /reports, /roadmap, /documents
+ * Protegidas: /dashboard, /profile, /search, /reports, /roadmap, /documents, /notifications, /documents/new
  * Admin:      /admin/dashboard
  * Raíz /      → redirige a /login
  */
@@ -36,8 +38,10 @@ const AppRoutes: React.FC = () => {
       <PrivateRoute exact path="/profile" component={ProfilePage} />
       <PrivateRoute exact path="/search" component={SearchPage} />
       <PrivateRoute exact path="/reports" component={ReportsPage} />
-      <PrivateRoute exact path="/roadmap" component={RoadmapPage} />
+      <PrivateRoute exact path="/roadmap/:id" component={RoadmapPage} />
       <PrivateRoute exact path="/documents" component={DocumentsPage} />
+      <PrivateRoute exact path="/documents/new" component={NewDocumentPage} requiredRole="admin" />
+      <PrivateRoute exact path="/notifications" component={NotificationsPage} />
       
       {/* Solo admin */}
       <PrivateRoute exact path="/admin/dashboard" component={AdminDashboardPage} requiredRole="admin" />

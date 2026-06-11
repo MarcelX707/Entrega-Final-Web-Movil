@@ -7,7 +7,7 @@ import {
   IonGrid, IonRow, IonCol, IonBackButton,
   IonLoading // <-- NUEVO: Para mostrar un símbolo de carga
 } from '@ionic/react';
-import { documentOutline, downloadOutline, addOutline, folderOpenOutline, logOutOutline } from 'ionicons/icons';
+import { documentOutline, downloadOutline, addOutline, folderOpenOutline, logOutOutline, trashOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { Documento } from '../../types';
 import api from '../../services/api'; // <-- NUEVO: Importamos la conexión a tu backend
@@ -18,20 +18,14 @@ interface CarpetaDB {
   nombre_carpeta: string;
 }
 
-// FIX: cada documento tiene categoría para poder filtrar por carpeta
-interface DocumentoConCategoria extends Documento {
-  categoria: string; // <-- Lo cambiamos a string general porque ahora vendrá de la BD
+// NUEVO: Definimos cómo viene el documento desde tu PostgreSQL
+interface DocumentoDB {
+  id_documento: number;
+  id_carpeta: number;
+  nombre_archivo: string;
+  fecha_subida: string;
+  ruta_almacenamiento: string;
 }
-
-// Mantenemos tus documentos falsos por ahora, hasta que hagamos el endpoint de documentos en el backend
-const TODOS_LOS_DOCUMENTOS: DocumentoConCategoria[] = [
-  { id: '1', nombre: 'Resolución N°1234-2024', tipo: 'PDF', fecha: '2024-03-01', estado: 'aprobado', categoria: 'Resoluciones' },
-  { id: '2', nombre: 'Resolución N°1100-2023', tipo: 'PDF', fecha: '2023-11-10', estado: 'aprobado', categoria: 'Resoluciones' },
-  { id: '3', nombre: 'Formulario de Solicitud', tipo: 'DOCX', fecha: '2024-02-15', estado: 'pendiente', categoria: 'Formularios' },
-  { id: '4', nombre: 'Formulario de Permiso Obras', tipo: 'DOCX', fecha: '2024-01-20', estado: 'aprobado', categoria: 'Formularios' },
-  { id: '5', nombre: 'Informe Técnico Q1', tipo: 'PDF', fecha: '2024-04-05', estado: 'aprobado', categoria: 'Informes' },
-  { id: '6', nombre: 'Informe Ambiental 2023', tipo: 'PDF', fecha: '2023-12-01', estado: 'rechazado', categoria: 'Informes' },
-];
 
 const DocumentsPage: React.FC = () => {
   const history = useHistory();
@@ -43,26 +37,41 @@ const DocumentsPage: React.FC = () => {
   
   // NUEVO: Estados para manejar las carpetas reales de la Base de Datos
   const [carpetas, setCarpetas] = useState<CarpetaDB[]>([]);
+  const [documentos, setDocumentos] = useState<DocumentoDB[]>([]);
   const [cargando, setCargando] = useState<boolean>(true);
 
   // FIX: estado de carpeta seleccionada. Puede ser el ID de la carpeta o 'Todos'
   const [carpetaActiva, setCarpetaActiva] = useState<number | 'Todos'>('Todos');
 
-  // NUEVO: Esta función va a buscar las carpetas a tu servidor Node.js (EP 2.4)
-  useEffect(() => {
-    const obtenerCarpetas = async () => {
-      try {
-        const respuesta = await api.get('/carpetas');
-        setCarpetas(respuesta.data); // Guardamos lo que respondió PostgreSQL
-      } catch (error) {
-        console.error('Error al cargar carpetas desde la API:', error);
-      } finally {
-        setCargando(false);
-      }
-    };
+  // NUEVO: Esta función va a buscar las carpetas y documentos a tu servidor Node.js
+  const fetchData = async () => {
+    try {
+      const [resCarpetas, resDocumentos] = await Promise.all([
+        api.get('/carpetas'),
+        api.get('/documentos')
+      ]);
+      setCarpetas(resCarpetas.data);
+      setDocumentos(resDocumentos.data);
+    } catch (error) {
+      console.error('Error al cargar datos desde la API:', error);
+    } finally {
+      setCargando(false);
+    }
+  };
 
-    obtenerCarpetas();
-  }, []); // El arreglo vacío indica que se ejecuta solo una vez al abrir la pantalla
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('¿Estás seguro de eliminar este documento?')) return;
+    try {
+      await api.delete(`/documentos/${id}`);
+      setDocumentos(prev => prev.filter(d => d.id_documento !== id));
+    } catch (error) {
+      console.error('Error al eliminar documento:', error);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -70,15 +79,9 @@ const DocumentsPage: React.FC = () => {
     window.location.href = '/login';
   };
 
-  // NUEVO: Lógica para filtrar los documentos según la carpeta activa
-  // (Esto tendrás que ajustarlo cuando los documentos también vengan de la BD)
-  const nombreCarpetaActiva = carpetaActiva === 'Todos' 
-    ? 'Todos' 
-    : carpetas.find(c => c.id_carpeta === carpetaActiva)?.nombre_carpeta || '';
-
-  const documentosFiltrados = TODOS_LOS_DOCUMENTOS.filter(doc => {
-    const coincideCarpeta = carpetaActiva === 'Todos' || doc.categoria === nombreCarpetaActiva;
-    const coincideBusqueda = doc.nombre.toLowerCase().includes(query.toLowerCase());
+  const documentosFiltrados = documentos.filter(doc => {
+    const coincideCarpeta = carpetaActiva === 'Todos' || doc.id_carpeta === carpetaActiva;
+    const coincideBusqueda = doc.nombre_archivo.toLowerCase().includes(query.toLowerCase());
     return coincideCarpeta && coincideBusqueda;
   });
 
@@ -100,8 +103,7 @@ const DocumentsPage: React.FC = () => {
 
       <IonContent className="ion-padding">
         
-        {/* Mostramos esto mientras Node.js busca la info en la BD */}
-        <IonLoading isOpen={cargando} message="Cargando carpetas del sistema..." />
+        <IonLoading isOpen={cargando} message="Cargando información..." />
 
         <IonSearchbar 
           value={query} 
@@ -112,21 +114,22 @@ const DocumentsPage: React.FC = () => {
         {/* Sección de Filtros por Carpeta */}
         <IonGrid>
           <IonRow>
-            <IonCol>
+            <IonCol size="auto">
               <IonButton 
                 fill={carpetaActiva === 'Todos' ? 'solid' : 'outline'} 
                 onClick={() => setCarpetaActiva('Todos')}
+                size="small"
               >
                 Todos
               </IonButton>
             </IonCol>
             
-            {/* NUEVO: Iteramos sobre las carpetas reales de la BD */}
             {carpetas.map(carpeta => (
-              <IonCol key={carpeta.id_carpeta}>
+              <IonCol key={carpeta.id_carpeta} size="auto">
                 <IonButton 
                   fill={carpetaActiva === carpeta.id_carpeta ? 'solid' : 'outline'} 
                   onClick={() => setCarpetaActiva(carpeta.id_carpeta)}
+                  size="small"
                 >
                   {carpeta.nombre_carpeta}
                 </IonButton>
@@ -137,24 +140,37 @@ const DocumentsPage: React.FC = () => {
 
         {/* Lista de Documentos */}
         <IonList>
-          {documentosFiltrados.map((doc) => (
-            <IonItem key={doc.id}>
-              <IonIcon icon={documentOutline} slot="start" />
-              <IonLabel>
-                <h2>{doc.nombre}</h2>
-                <p>{doc.fecha} - {doc.tipo}</p>
-              </IonLabel>
-              <IonButton fill="clear" slot="end">
-                <IonIcon icon={downloadOutline} />
-              </IonButton>
+          {documentosFiltrados.length > 0 ? (
+            documentosFiltrados.map((doc) => (
+              <IonItem key={doc.id_documento}>
+                <IonIcon icon={documentOutline} slot="start" />
+                <IonLabel>
+                  <h2>{doc.nombre_archivo}</h2>
+                  <p>{new Date(doc.fecha_subida).toLocaleDateString()} - ID: {doc.id_documento}</p>
+                </IonLabel>
+                <IonButtons slot="end">
+                  <IonButton fill="clear" onClick={() => window.open(doc.ruta_almacenamiento, '_blank')}>
+                    <IonIcon slot="icon-only" icon={downloadOutline} />
+                  </IonButton>
+                  {isAdmin && (
+                    <IonButton fill="clear" color="danger" onClick={() => handleDelete(doc.id_documento)}>
+                      <IonIcon slot="icon-only" icon={trashOutline} />
+                    </IonButton>
+                  )}
+                </IonButtons>
+              </IonItem>
+            ))
+          ) : (
+            <IonItem lines="none">
+              <IonLabel className="ion-text-center">No se encontraron documentos</IonLabel>
             </IonItem>
-          ))}
+          )}
         </IonList>
 
         {/* Botón flotante solo para Administradores */}
         {isAdmin && (
           <IonFab vertical="bottom" horizontal="end" slot="fixed">
-            <IonFabButton>
+            <IonFabButton onClick={() => history.push('/documents/new')}>
               <IonIcon icon={addOutline} />
             </IonFabButton>
           </IonFab>

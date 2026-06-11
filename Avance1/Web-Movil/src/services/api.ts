@@ -13,12 +13,13 @@ const api = axios.create({
 // ==========================================
 
 // Interceptor de Peticiones (Request): 
-// Aquí inyectaremos el token JWT más adelante cuando lo tengamos
+// Aquí inyectaremos el token JWT para autenticar todas las llamadas
 api.interceptors.request.use(
   (config) => {
-    // Ejemplo futuro:
-    // const token = localStorage.getItem('token');
-    // if (token) { config.headers.Authorization = `Bearer ${token}`; }
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => {

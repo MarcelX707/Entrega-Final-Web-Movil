@@ -1,35 +1,69 @@
 // src/pages/roadmap/RoadmapPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonIcon, IonBadge, IonButton,
   IonButtons, IonGrid, IonRow, IonCol, IonCard, IonCardContent,
-  IonText, IonBackButton,
+  IonText, IonBackButton, IonLoading
 } from '@ionic/react';
 import {
   checkmarkCircleOutline, timeOutline, ellipseOutline,
   addOutline, createOutline, gitBranchOutline, logOutOutline,
 } from 'ionicons/icons';
-import { useHistory } from 'react-router-dom';
-import { PasoHojaRuta } from '../../types';
+import { useHistory, useParams } from 'react-router-dom';
+import api from '../../services/api';
 
-const PASOS_DEMO: PasoHojaRuta[] = [
-  { id: '1', titulo: 'Solicitud inicial', descripcion: 'Presentación de documentos requeridos', estado: 'completado', fechaEstimada: '2024-01-15' },
-  { id: '2', titulo: 'Revisión municipal', descripcion: 'Evaluación por el departamento correspondiente', estado: 'en_progreso', fechaEstimada: '2024-02-01', dependencias: ['1'] },
-  { id: '3', titulo: 'Aprobación', descripcion: 'Emisión de resolución oficial', estado: 'pendiente', fechaEstimada: '2024-03-01', dependencias: ['2'] },
-];
+interface FaseDB {
+  id_fase: number;
+  id_tramite: number;
+  nombre_tarea: string;
+  estado_fase: string;
+}
 
-const getEstadoIcon = (estado: PasoHojaRuta['estado']) =>
-  ({ completado: checkmarkCircleOutline, en_progreso: timeOutline, pendiente: ellipseOutline }[estado]);
+const getEstadoIcon = (estado: string) => {
+  if (estado === 'completado') return checkmarkCircleOutline;
+  if (estado === 'en_progreso') return timeOutline;
+  return ellipseOutline;
+};
 
-const getEstadoColor = (estado: PasoHojaRuta['estado']) =>
-  ({ completado: 'success', en_progreso: 'primary', pendiente: 'medium' }[estado]);
+const getEstadoColor = (estado: string) => {
+  if (estado === 'completado') return 'success';
+  if (estado === 'en_progreso') return 'primary';
+  return 'medium';
+};
 
 const RoadmapPage: React.FC = () => {
   const history = useHistory();
+  const { id } = useParams<{ id: string }>();
+  const [fases, setFases] = useState<FaseDB[]>([]);
+  const [cargando, setCargando] = useState(true);
+
   const userStr = localStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
   const isAdmin = user?.role === 'admin';
+
+  useEffect(() => {
+    const fetchFases = async () => {
+      try {
+        const res = await api.get(`/tramites/${id}/fases`);
+        setFases(res.data);
+      } catch (error) {
+        console.error('Error al cargar fases:', error);
+      } finally {
+        setCargando(false);
+      }
+    };
+    fetchFases();
+  }, [id]);
+
+  const handleUpdateFase = async (idFase: number, nuevoEstado: string) => {
+    try {
+      await api.put(`/fases/${idFase}`, { estado_fase: nuevoEstado });
+      setFases(prev => prev.map(f => f.id_fase === idFase ? { ...f, estado_fase: nuevoEstado } : f));
+    } catch (error) {
+      console.error('Error al actualizar fase:', error);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -42,9 +76,9 @@ const RoadmapPage: React.FC = () => {
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start">
-            <IonBackButton defaultHref="/dashboard" text="Volver" />
+            <IonBackButton defaultHref="/search" text="Volver" />
           </IonButtons>
-          <IonTitle>Gestión de Hoja de Ruta Dinámica</IonTitle>
+          <IonTitle>Hoja de Ruta - Trámite #{id}</IonTitle>
           <IonButtons slot="end">
             <IonButton fill="clear" color="danger" onClick={handleLogout}>
               <IonIcon icon={logOutOutline} />
@@ -55,29 +89,34 @@ const RoadmapPage: React.FC = () => {
       </IonHeader>
 
       <IonContent>
+        <IonLoading isOpen={cargando} message="Cargando hoja de ruta..." />
+        
         <IonGrid>
           <IonRow>
             <IonCol size="12" sizeMd="8">
               <IonList>
-                {PASOS_DEMO.map((paso, index) => (
-                  <IonItem key={paso.id} className="roadmap-item">
-                    <IonIcon slot="start" icon={getEstadoIcon(paso.estado)} color={getEstadoColor(paso.estado)} size="large" />
-                    <IonLabel>
-                      <h2>{index + 1}. {paso.titulo}</h2>
-                      <p>{paso.descripcion}</p>
-                      {paso.fechaEstimada && <IonText color="medium"><p>Fecha estimada: {paso.fechaEstimada}</p></IonText>}
-                      {paso.dependencias && paso.dependencias.length > 0 && (
-                        <div className="dependencias">
-                          <IonIcon icon={gitBranchOutline} size="small" />
-                          <span> Depende de: Paso {paso.dependencias.join(', ')}</span>
-                        </div>
-                      )}
-                    </IonLabel>
-                    <IonBadge color={getEstadoColor(paso.estado)} slot="end">
-                      {paso.estado.replace('_', ' ')}
-                    </IonBadge>
-                  </IonItem>
-                ))}
+                {fases.length > 0 ? (
+                  fases.map((paso, index) => (
+                    <IonItem key={paso.id_fase} className="roadmap-item">
+                      <IonIcon slot="start" icon={getEstadoIcon(paso.estado_fase)} color={getEstadoColor(paso.estado_fase)} size="large" />
+                      <IonLabel>
+                        <h2>{index + 1}. {paso.nombre_tarea}</h2>
+                        {isAdmin && (
+                          <div style={{ marginTop: '10px' }}>
+                            <IonButton size="small" fill="outline" onClick={() => handleUpdateFase(paso.id_fase, 'completado')}>Completar</IonButton>
+                            <IonButton size="small" fill="outline" onClick={() => handleUpdateFase(paso.id_fase, 'en_progreso')}>En Proceso</IonButton>
+                            <IonButton size="small" fill="outline" onClick={() => handleUpdateFase(paso.id_fase, 'pendiente')}>Pendiente</IonButton>
+                          </div>
+                        )}
+                      </IonLabel>
+                      <IonBadge color={getEstadoColor(paso.estado_fase)} slot="end">
+                        {paso.estado_fase.replace('_', ' ')}
+                      </IonBadge>
+                    </IonItem>
+                  ))
+                ) : (
+                  !cargando && <IonItem><IonLabel className="ion-text-center">No hay fases registradas para este trámite</IonLabel></IonItem>
+                )}
               </IonList>
             </IonCol>
 
@@ -85,22 +124,14 @@ const RoadmapPage: React.FC = () => {
               <IonCol size="12" sizeMd="4">
                 <IonCard>
                   <IonCardContent>
-                    <h3>Gestión</h3>
-                    <IonButton expand="block"><IonIcon slot="start" icon={addOutline} />Añadir Tarea</IonButton>
-                    <IonButton expand="block" fill="outline" style={{ marginTop: '0.5rem' }}>
-                      <IonIcon slot="start" icon={createOutline} />Editar Dependencias
-                    </IonButton>
+                    <h3>Gestión Administrativa</h3>
+                    <p>Como administrador puedes actualizar el estado de cada fase del trámite para informar al usuario.</p>
                   </IonCardContent>
                 </IonCard>
               </IonCol>
             )}
           </IonRow>
         </IonGrid>
-
-        <div className="roadmap-footer-actions">
-          <IonButton color="success">Guardar Cambios</IonButton>
-          <IonButton fill="outline" color="medium" onClick={() => history.push('/dashboard')}>Cancelar</IonButton>
-        </div>
       </IonContent>
     </IonPage>
   );
