@@ -4,9 +4,11 @@ import {
   IonPage, IonContent, IonButton, IonIcon,
   IonText, IonLoading, IonFooter, IonToolbar,
 } from '@ionic/react';
-import { logoGoogle, keyOutline, mailOutline, lockClosedOutline } from 'ionicons/icons';
+import { keyOutline, mailOutline, lockClosedOutline } from 'ionicons/icons';
 import { useHistory, Link } from 'react-router-dom';
 import AuthService from '../../services/auth.service';
+import { GoogleLogin } from '@react-oauth/google';
+import api from '../../services/api';
 
 const LoginPage: React.FC = () => {
   const history = useHistory();
@@ -31,10 +33,23 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGoogle = () => {
-    localStorage.setItem('user', JSON.stringify({ id: '2', nombre: 'Usuario', apellido: 'Google', email: 'user@gmail.com', role: 'user' }));
-    localStorage.setItem('token', 'demo-token-google');
-    history.push('/dashboard');
+  const onSuccessGoogle = async (credentialResponse: any) => {
+    setLoading(true);
+    try {
+      const { credential } = credentialResponse;
+      // Enviamos el token de Google a nuestro backend
+      const res = await api.post('/auth/google', { token: credential });
+      
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      
+      setLoading(false);
+      history.push('/dashboard');
+    } catch (err: any) {
+      console.error('Error Google Login:', err);
+      setLoading(false);
+      setError('Error al autenticar con Google. Inténtalo de nuevo.');
+    }
   };
 
   const handleClaveUnica = () => {
@@ -89,10 +104,16 @@ const LoginPage: React.FC = () => {
           <div className="auth-card">
             <h3>Autentificación</h3>
 
-            <IonButton expand="block" fill="outline" className="social-btn google-btn" onClick={handleGoogle}>
-              <IonIcon slot="start" icon={logoGoogle} />
-              Gmail
-            </IonButton>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+              <GoogleLogin
+                onSuccess={onSuccessGoogle}
+                onError={() => setError('Fallo en el inicio de sesión con Google')}
+                useOneTap
+                theme="outline"
+                size="large"
+                width="100%"
+              />
+            </div>
 
             <IonButton expand="block" fill="outline" className="social-btn claveunica-btn" onClick={handleClaveUnica}>
               <IonIcon slot="start" icon={keyOutline} />

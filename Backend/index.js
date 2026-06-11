@@ -3,10 +3,12 @@ const cors = require('cors');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
+const { OAuth2Client } = require('google-auth-library');
 
 // Inicializar la aplicación
 const app = express();
 const PORT = 3001;
+const client = new OAuth2Client('302628722954-stoilnvt45o0dj6l3beje83phftob2m8.apps.googleusercontent.com');
 
 // Middlewares
 app.use(cors());
@@ -359,8 +361,69 @@ app.put('/api/fases/:id', async (req, res) => {
 });
 
 // ==========================================
-// ENDPOINTS PARA AUTENTICACIÓN (EP 2.2 / 2.3)
+// ENDPOINTS PARA AUTENTICACIÓN (EP 2.2 / 2.3 / 5.0)
 // ==========================================
+
+// 0. POST: Google Login (Integración EF 5)
+app.post('/api/auth/google', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    // 1. Verificar el token con Google
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: '302628722954-stoilnvt45o0dj6l3beje83phftob2m8.apps.googleusercontent.com',
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, given_name, family_name, sub } = payload;
+
+    // 2. Buscar si el usuario ya existe en nuestra base de datos
+    let userResult = await pool.query('SELECT * FROM usuarios WHERE correo = $1', [email]);
+    let user;
+
+    if (userResult.rows.length === 0) {
+      // 3. Si no existe, lo creamos (Registro automático)
+      const rutFicticio = `G-${sub.substring(0, 8)}`; 
+      const newUserResult = await pool.query(
+        `INSERT INTO usuarios (id_rol, nombre, apellido, correo, contrasena_hash, rut, region, comuna) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [1, given_name, family_name || '', email, 'GOOGLE_AUTH_USER', rutFicticio, 'Región Metropolitana', 'Santo Domingo']
+      );
+      user = newUserResult.rows[0];
+    } else {
+      user = userResult.rows[0];
+    }
+
+    // 4. Determinar rol
+    const roleResult = await pool.query('SELECT nombre_rol FROM roles WHERE id_rol = $1', [user.id_rol]);
+    const roleName = roleResult.rows.length > 0 && roleResult.rows[0].nombre_rol === 'administrador' ? 'admin' : 'user';
+
+    // 5. Generar nuestro propio token JWT
+    const jwtToken = jwt.sign(
+      { id: user.id_usuario, email: user.correo, role: roleName },
+      process.env.JWT_SECRET || 'una_clave_secreta_muy_segura_para_los_tokens',
+      { expiresIn: '24h' }
+    );
+
+    res.status(200).json({
+      user: {
+        id: user.id_usuario.toString(),
+        nombre: user.nombre,
+        apellido: user.apellido,
+        email: user.correo,
+        rut: user.rut,
+        role: roleName,
+        region: user.region,
+        comuna: user.comuna
+      },
+      token: jwtToken
+    });
+  } catch (error) {
+    console.error('Error Google Login Backend:', error.message);
+    res.status(500).json({ error: 'Error en la autenticación con Google' });
+  }
+});
 
 // 1. POST: Registro de usuario
 app.post('/api/auth/register', async (req, res) => {
