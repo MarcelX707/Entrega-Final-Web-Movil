@@ -372,10 +372,16 @@ const axios = require('axios');
 app.post('/api/auth/google', async (req, res) => {
   try {
     const { token } = req.body;
+    console.log('Token recibido de Google:', token ? 'Token presente' : 'Token AUSENTE');
     
     // Obtenemos la info del usuario usando el access_token que viene del frontend
-    const googleRes = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${token}`);
+    // Usamos una URL de validación más robusta
+    const googleRes = await axios.get(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
     const payload = googleRes.data;
+    console.log('Payload de Google validado para:', payload.email);
     const { email, given_name, family_name, sub } = payload;
 
     // 2. Buscar si el usuario ya existe en nuestra base de datos
