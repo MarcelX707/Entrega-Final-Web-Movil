@@ -15,6 +15,32 @@ const client = new OAuth2Client('302628722954-stoilnvt45o0dj6l3beje83phftob2m8.a
 app.use(cors());
 app.use(express.json());
 
+// Middleware para verificar el token JWT (Error 403 si falta, 401 si es inválido/expirado)
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(403).json({ error: 'Acceso denegado: token no proporcionado' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'una_clave_secreta_muy_segura_para_los_tokens');
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+};
+
+// Middleware para verificar si el usuario es administrador
+const verifyAdmin = (req, res, next) => {
+  verifyToken(req, res, () => {
+    if (req.user && req.user.role === 'admin') {
+      next();
+    } else {
+      return res.status(403).json({ error: 'Acceso denegado: se requieren permisos de administrador' });
+    }
+  });
+};
+
+
 // Endpoint de prueba
 app.get('/', (req, res) => {
   res.send('¡El backend de la Plataforma Municipal está vivo!');
@@ -25,7 +51,7 @@ app.get('/', (req, res) => {
 // ==========================================
 
 // 1. GET: Obtener todas las carpetas
-app.get('/api/carpetas', async (req, res) => {
+app.get('/api/carpetas', verifyToken, async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM carpetas ORDER BY id_carpeta ASC');
     // 200 OK
@@ -38,7 +64,7 @@ app.get('/api/carpetas', async (req, res) => {
 });
 
 // 2. GET: Obtener una carpeta por ID
-app.get('/api/carpetas/:id', async (req, res) => {
+app.get('/api/carpetas/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM carpetas WHERE id_carpeta = $1', [id]);
@@ -56,7 +82,7 @@ app.get('/api/carpetas/:id', async (req, res) => {
 });
 
 // 3. POST: Crear una nueva carpeta
-app.post('/api/carpetas', async (req, res) => {
+app.post('/api/carpetas', verifyAdmin, async (req, res) => {
   try {
     const { nombre_carpeta } = req.body;
 
@@ -80,7 +106,7 @@ app.post('/api/carpetas', async (req, res) => {
 });
 
 // 4. PUT: Actualizar el nombre de una carpeta existente
-app.put('/api/carpetas/:id', async (req, res) => {
+app.put('/api/carpetas/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre_carpeta } = req.body;
@@ -106,7 +132,7 @@ app.put('/api/carpetas/:id', async (req, res) => {
 });
 
 // 5. DELETE: Eliminar una carpeta
-app.delete('/api/carpetas/:id', async (req, res) => {
+app.delete('/api/carpetas/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
@@ -130,7 +156,7 @@ app.delete('/api/carpetas/:id', async (req, res) => {
 // ==========================================
 
 // 1. GET: Obtener documentos (opcionalmente filtrados por carpeta)
-app.get('/api/documentos', async (req, res) => {
+app.get('/api/documentos', verifyToken, async (req, res) => {
   try {
     const { id_carpeta } = req.query;
     let query = 'SELECT * FROM documentos';
@@ -151,7 +177,7 @@ app.get('/api/documentos', async (req, res) => {
 });
 
 // 2. POST: Crear un nuevo documento
-app.post('/api/documentos', async (req, res) => {
+app.post('/api/documentos', verifyAdmin, async (req, res) => {
   try {
     const { id_carpeta, nombre_archivo, ruta_almacenamiento, subido_por } = req.body;
 
@@ -173,7 +199,7 @@ app.post('/api/documentos', async (req, res) => {
 });
 
 // 3. PUT: Actualizar un documento
-app.put('/api/documentos/:id', async (req, res) => {
+app.put('/api/documentos/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre_archivo, id_carpeta } = req.body;
@@ -195,7 +221,7 @@ app.put('/api/documentos/:id', async (req, res) => {
 });
 
 // 4. DELETE: Eliminar un documento
-app.delete('/api/documentos/:id', async (req, res) => {
+app.delete('/api/documentos/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('DELETE FROM documentos WHERE id_documento = $1 RETURNING *', [id]);
@@ -216,9 +242,15 @@ app.delete('/api/documentos/:id', async (req, res) => {
 // ==========================================
 
 // 1. GET: Obtener notificaciones por usuario
-app.get('/api/notificaciones/:id_usuario', async (req, res) => {
+app.get('/api/notificaciones/:id_usuario', verifyToken, async (req, res) => {
   try {
     const { id_usuario } = req.params;
+
+    // Control IDOR: solo el usuario dueño de las notificaciones o un admin pueden verlas
+    if (req.user.id.toString() !== id_usuario && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso denegado: no puedes consultar notificaciones de otros usuarios' });
+    }
+
     const result = await pool.query(
       'SELECT * FROM notificaciones WHERE id_usuario = $1 ORDER BY fecha_notificacion DESC',
       [id_usuario]
@@ -231,7 +263,7 @@ app.get('/api/notificaciones/:id_usuario', async (req, res) => {
 });
 
 // 2. POST: Crear una notificación (ej: para el sistema)
-app.post('/api/notificaciones', async (req, res) => {
+app.post('/api/notificaciones', verifyAdmin, async (req, res) => {
   try {
     const { id_usuario, mensaje } = req.body;
     if (!id_usuario || !mensaje) {
@@ -249,9 +281,19 @@ app.post('/api/notificaciones', async (req, res) => {
 });
 
 // 3. PUT: Marcar como leída
-app.put('/api/notificaciones/:id/leer', async (req, res) => {
+app.put('/api/notificaciones/:id/leer', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Control IDOR: Verificar que la notificación pertenezca al usuario que hace la solicitud
+    const notifCheck = await pool.query('SELECT id_usuario FROM notificaciones WHERE id_notificacion = $1', [id]);
+    if (notifCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Notificación no encontrada' });
+    }
+    if (notifCheck.rows[0].id_usuario !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso denegado: no eres el propietario de esta notificación' });
+    }
+
     const result = await pool.query(
       'UPDATE notificaciones SET leida = true WHERE id_notificacion = $1 RETURNING *',
       [id]
@@ -267,9 +309,19 @@ app.put('/api/notificaciones/:id/leer', async (req, res) => {
 });
 
 // 4. DELETE: Eliminar notificación
-app.delete('/api/notificaciones/:id', async (req, res) => {
+app.delete('/api/notificaciones/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Control IDOR: Verificar propiedad de la notificación
+    const notifCheck = await pool.query('SELECT id_usuario FROM notificaciones WHERE id_notificacion = $1', [id]);
+    if (notifCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Notificación no encontrada' });
+    }
+    if (notifCheck.rows[0].id_usuario !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso denegado: no eres el propietario de esta notificación' });
+    }
+
     const result = await pool.query('DELETE FROM notificaciones WHERE id_notificacion = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Notificación no encontrada' });
@@ -286,7 +338,7 @@ app.delete('/api/notificaciones/:id', async (req, res) => {
 // ==========================================
 
 // 1. GET: Obtener trámites con filtros
-app.get('/api/tramites', async (req, res) => {
+app.get('/api/tramites', verifyToken, async (req, res) => {
   try {
     const { estado, tipo, id_usuario } = req.query;
     let query = `
@@ -298,6 +350,15 @@ app.get('/api/tramites', async (req, res) => {
     `;
     let params = [];
 
+    // Control IDOR / Privacidad: Si el usuario no es admin, forzar a que solo vea sus propios trámites
+    if (req.user.role !== 'admin') {
+      params.push(req.user.id);
+      query += ` AND t.id_usuario = $${params.length}`;
+    } else if (id_usuario) {
+      params.push(id_usuario);
+      query += ` AND t.id_usuario = $${params.length}`;
+    }
+
     if (estado && estado !== 'Todos') {
       params.push(estado);
       query += ` AND e.nombre_estado = $${params.length}`;
@@ -305,10 +366,6 @@ app.get('/api/tramites', async (req, res) => {
     if (tipo && tipo !== 'Todos') {
       params.push(tipo);
       query += ` AND tt.nombre_tipo = $${params.length}`;
-    }
-    if (id_usuario) {
-      params.push(id_usuario);
-      query += ` AND t.id_usuario = $${params.length}`;
     }
 
     query += ' ORDER BY t.fecha_actualizacion DESC';
@@ -321,9 +378,19 @@ app.get('/api/tramites', async (req, res) => {
 });
 
 // 2. GET: Obtener fases de un trámite (Hoja de Ruta)
-app.get('/api/tramites/:id/fases', async (req, res) => {
+app.get('/api/tramites/:id/fases', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Control IDOR: Validar que el trámite pertenezca al usuario (o sea administrador)
+    const tramiteCheck = await pool.query('SELECT id_usuario FROM tramites WHERE id_tramite = $1', [id]);
+    if (tramiteCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Trámite no encontrado' });
+    }
+    if (tramiteCheck.rows[0].id_usuario !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso denegado: no estás autorizado para ver este trámite' });
+    }
+
     const result = await pool.query(
       'SELECT * FROM fases_ruta WHERE id_tramite = $1 ORDER BY id_fase ASC',
       [id]
@@ -336,7 +403,7 @@ app.get('/api/tramites/:id/fases', async (req, res) => {
 });
 
 // 3. PUT: Actualizar estado de una fase
-app.put('/api/fases/:id', async (req, res) => {
+app.put('/api/fases/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { estado_fase } = req.body;
@@ -563,25 +630,18 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Middleware para verificar el token JWT (Error 403 si falta, 401 si es inválido/expirado)
-const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(403).json({ error: 'Acceso denegado: token no proporcionado' });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'una_clave_secreta_muy_segura_para_los_tokens');
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: 'Token inválido o expirado' });
-  }
-};
+
 
 // 3. PUT: Actualizar perfil del usuario
 app.put('/api/auth/profile/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, apellido, email } = req.body;
+
+    // Control IDOR: Un usuario común solo puede actualizar su propio perfil (o admin)
+    if (req.user.id.toString() !== id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso denegado: no estás autorizado para modificar este perfil' });
+    }
 
     if (!nombre || !apellido || !email) {
       return res.status(400).json({ error: 'Nombre, apellido y correo son obligatorios' });
@@ -632,7 +692,7 @@ app.put('/api/auth/profile/:id', verifyToken, async (req, res) => {
 });
 
 // 4. DELETE: Eliminar un usuario
-app.delete('/api/auth/users/:id', async (req, res) => {
+app.delete('/api/auth/users/:id', verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
@@ -661,7 +721,7 @@ app.delete('/api/auth/users/:id', async (req, res) => {
 });
 
 // 5. GET: Obtener todos los usuarios (útil para pruebas y desarrollo)
-app.get('/api/auth/users', async (req, res) => {
+app.get('/api/auth/users', verifyAdmin, async (req, res) => {
   try {
     const result = await pool.query(
       'SELECT id_usuario, nombre, apellido, correo, rut, id_rol FROM usuarios ORDER BY id_usuario ASC'
