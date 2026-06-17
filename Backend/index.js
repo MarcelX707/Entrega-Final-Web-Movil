@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('./db');
@@ -12,7 +13,27 @@ const PORT = 3001;
 const client = new OAuth2Client('302628722954-stoilnvt45o0dj6l3beje83phftob2m8.apps.googleusercontent.com');
 
 // Middlewares
-app.use(cors());
+app.use(helmet());
+
+// Configuración de CORS seguro
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8100'
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir peticiones sin origen (como apps nativas con Capacitor o herramientas de prueba)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin) || origin === process.env.FRONTEND_URL) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Middleware para verificar el token JWT (Error 403 si falta, 401 si es inválido/expirado)
