@@ -741,6 +741,48 @@ app.delete('/api/auth/users/:id', verifyAdmin, async (req, res) => {
   }
 });
 
+// 4.5. PUT: Actualizar rol de un usuario (Solo Administrador)
+app.put('/api/auth/users/:id/role', verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id_rol } = req.body; // 1 = usuario, 2 = administrador
+
+    // 1. Validar que el rol sea válido
+    if (id_rol !== 1 && id_rol !== 2) {
+      return res.status(400).json({ error: 'Rol inválido. Los roles permitidos son 1 (usuario) y 2 (administrador).' });
+    }
+
+    // 2. Prevenir auto-degradación (no puedes cambiar tu propio rol)
+    if (req.user.id.toString() === id) {
+      return res.status(400).json({ error: 'No puedes cambiar tu propio rol.' });
+    }
+
+    // 3. Obtener el usuario para verificar su existencia y proteger la cuenta principal
+    const userResult = await pool.query('SELECT correo FROM usuarios WHERE id_usuario = $1', [id]);
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    if (userResult.rows[0].correo === 'admin@gmail.com') {
+      return res.status(400).json({ error: 'No está permitido cambiar el rol del administrador principal.' });
+    }
+
+    // 4. Actualizar el rol en la base de datos
+    const result = await pool.query(
+      'UPDATE usuarios SET id_rol = $1 WHERE id_usuario = $2 RETURNING id_usuario, nombre, apellido, correo, id_rol',
+      [id_rol, id]
+    );
+
+    res.status(200).json({
+      mensaje: 'Rol de usuario actualizado exitosamente.',
+      usuario: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Error al actualizar rol de usuario:', error.message);
+    res.status(500).json({ error: 'Error interno del servidor al actualizar rol de usuario.' });
+  }
+});
+
 // 5. GET: Obtener todos los usuarios (útil para pruebas y desarrollo)
 app.get('/api/auth/users', verifyAdmin, async (req, res) => {
   try {

@@ -7,7 +7,7 @@ import {
   IonList, IonItem, IonLabel, IonButton, IonIcon,
   IonBackButton, IonLoading, IonToast
 } from '@ionic/react';
-import { trashOutline, logOutOutline, peopleOutline, statsChartOutline } from 'ionicons/icons';
+import { trashOutline, logOutOutline, peopleOutline, statsChartOutline, shieldOutline } from 'ionicons/icons';
 import api from '../../services/api';
 
 interface UsuarioDB {
@@ -48,6 +48,23 @@ const AdminDashboardPage: React.FC = () => {
     } catch (error) {
       console.error('Error al eliminar usuario:', error);
       setMensaje('Error al eliminar usuario');
+    }
+  };
+
+  const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const handleToggleRole = async (user: UsuarioDB) => {
+    const nuevoRol = user.id_rol === 2 ? 1 : 2;
+    const actionText = nuevoRol === 2 ? 'promover a Administrador' : 'degradar a Usuario común';
+    if (!window.confirm(`¿Estás seguro de que deseas ${actionText} a ${user.nombre}?`)) return;
+    try {
+      await api.put(`/auth/users/${user.id_usuario}/role`, { id_rol: nuevoRol });
+      setUsuarios(prev => prev.map(u => u.id_usuario === user.id_usuario ? { ...u, id_rol: nuevoRol } : u));
+      setMensaje('Rol de usuario actualizado con éxito');
+    } catch (error: any) {
+      console.error('Error al actualizar rol:', error);
+      const errMsg = error.response?.data?.error || 'Error al actualizar rol';
+      setMensaje(errMsg);
     }
   };
 
@@ -105,9 +122,20 @@ const AdminDashboardPage: React.FC = () => {
                         <IonButton 
                           slot="end" 
                           fill="clear" 
+                          color={u.id_rol === 2 ? 'warning' : 'primary'} 
+                          onClick={() => handleToggleRole(u)}
+                          disabled={u.correo === 'admin@gmail.com' || u.correo === currentUser.email}
+                          title={u.id_rol === 2 ? 'Quitar administrador' : 'Hacer administrador'}
+                          style={{ marginRight: '10px' }}
+                        >
+                          <IonIcon slot="icon-only" icon={shieldOutline} />
+                        </IonButton>
+                        <IonButton 
+                          slot="end" 
+                          fill="clear" 
                           color="danger" 
                           onClick={() => handleDeleteUser(u.id_usuario)}
-                          disabled={u.correo === 'admin@gmail.com'}
+                          disabled={u.correo === 'admin@gmail.com' || u.correo === currentUser.email}
                         >
                           <IonIcon slot="icon-only" icon={trashOutline} />
                         </IonButton>
